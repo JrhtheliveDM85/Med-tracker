@@ -1,0 +1,17 @@
+{
+  "name": "Med Tracker - Unity Forge Labs",
+  "short_name": "Med Tracker",
+  "description": "Feed that dopamine gremlin",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f5f0",
+  "theme_color": "#58735f",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
