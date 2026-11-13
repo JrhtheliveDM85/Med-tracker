@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Med Tracker - Unity Forge Labs</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -890,6 +891,7 @@
 
     function applyBodyClasses() {
       const themeName = state.theme || "oatmeal";
+      document.documentElement.classList.toggle("dark", themeName === "dark");
       const fontCls = state.fontChoice === "atkinson" ? "font-atkinson" : (state.fontChoice === "dyslexic" ? "font-dyslexic" : "");
       const motionCls = state.reduceMotion ? "reduce-motion" : "";
       document.body.className = `theme-${themeName} ${fontCls} ${motionCls} min-h-screen p-4 sm:p-6 md:p-8 flex flex-col items-center justify-start text-sm`.trim();
