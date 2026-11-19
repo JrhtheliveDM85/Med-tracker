@@ -357,6 +357,9 @@
           <p class="mt-1 opacity-90" id="safetyShieldSubtext">
             Double-dose lock is active. You have already taken your medication for this cycle!
           </p>
+          <button id="resetLogBtn" type="button" class="mt-2 px-3 py-1.5 rounded-lg border border-emerald-400 dark:border-emerald-700 font-bold text-xs hover:bg-emerald-100 dark:hover:bg-emerald-900 transition">
+            Logged by mistake? Reset log
+          </button>
         </div>
       </div>
 
@@ -638,6 +641,38 @@
         </button>
         <button id="safetyConfirmBtn" type="button" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs transition">
           Log 2nd Dose Anyway
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reset Last Log Confirmation Modal -->
+  <div id="resetModal" role="dialog" aria-modal="true" aria-labelledby="resetModalTitle" aria-describedby="resetModalText" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="bg-white dark:bg-[#212623] text-[#2b302c] dark:text-[#e8ece9] rounded-2xl max-w-sm w-full p-5 border border-amber-300 dark:border-amber-700 shadow-xl space-y-4">
+      <div class="flex items-start gap-3">
+        <div class="text-3xl select-none" aria-hidden="true">⚠️</div>
+        <div>
+          <div class="flex items-center justify-between gap-2">
+            <h3 id="resetModalTitle" class="font-bold text-base text-amber-800 dark:text-amber-300">Reset your log?</h3>
+            <button type="button" class="tile-tts-btn" data-tts-tile="resetmodal" aria-label="Listen to reset warning" title="Listen">🔊</button>
+          </div>
+          <p class="text-xs sm:text-sm text-[#596059] dark:text-[#b0b9b3] mt-1" id="resetModalText">
+            You logged your dose. Only reset if you did NOT take it. Reset?
+          </p>
+        </div>
+      </div>
+
+      <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl text-xs space-y-1 text-amber-900 dark:text-amber-200">
+        <p class="font-semibold">Did you take it?</p>
+        <p class="opacity-90">If yes, tap Cancel. The lock keeps you safe.</p>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-1 flex-wrap">
+        <button id="resetCancelBtn" type="button" class="px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 font-bold text-xs hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+          Cancel
+        </button>
+        <button id="resetConfirmBtn" type="button" class="px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs transition">
+          Yes, reset
         </button>
       </div>
     </div>
@@ -1391,6 +1426,81 @@
       executeDoseLogging();
     });
 
+    // Reset last log (undo an accidental tap): restores the state from before that log
+    let lastFocusedBeforeResetModal = null;
+
+    function openResetModal() {
+      const last = (state.doseHistory && state.doseHistory.length)
+        ? state.doseHistory[state.doseHistory.length - 1]
+        : null;
+      const timeLabel = (last && last.time) || state.lastTakenTimestamp || "earlier";
+      const dateLabel = last && (last.dateStr || last.date);
+      const whenText = (last && last.date && last.date !== getLogicalDateStr(new Date()) && dateLabel)
+        ? `${timeLabel} on ${dateLabel}`
+        : timeLabel;
+      lastFocusedBeforeResetModal = document.activeElement;
+      document.getElementById("resetModalText").innerText =
+        `You logged your dose at ${whenText}. Only reset if you did NOT take it. Reset?`;
+      document.getElementById("resetModal").classList.remove("opacity-0", "pointer-events-none");
+      document.getElementById("resetCancelBtn").focus();
+      if (state.autoTts) {
+        speakText(`You logged your dose at ${whenText}. Only reset if you did not take it.`);
+      }
+    }
+
+    function closeResetModal() {
+      document.getElementById("resetModal").classList.add("opacity-0", "pointer-events-none");
+      if (lastFocusedBeforeResetModal && typeof lastFocusedBeforeResetModal.focus === "function") {
+        lastFocusedBeforeResetModal.focus();
+      }
+    }
+
+    function executeResetLastLog() {
+      let removed = null;
+      if (state.doseHistory && state.doseHistory.length > 0) {
+        removed = state.doseHistory.pop();
+        state.pillsLeft = state.pillsLeft + 1;
+        // Streak only went up if that log was the first one for its day
+        const dayStillLogged = state.doseHistory.some(h => h.date === removed.date);
+        if (!dayStillLogged) {
+          state.streak = Math.max(0, (Number(state.streak) || 0) - 1);
+        }
+      }
+      // Go back to how things were before that log (older days stay untouched)
+      const prev = (state.doseHistory && state.doseHistory.length > 0)
+        ? state.doseHistory[state.doseHistory.length - 1]
+        : null;
+      state.lastTakenDate = prev ? (prev.date || null) : null;
+      state.lastTakenEpochMs = prev ? (prev.epochMs || null) : null;
+      state.lastTakenTimestamp = prev ? (prev.time || null) : null;
+      previewMood = null;
+      saveState();
+      render();
+    }
+
+    document.getElementById("resetLogBtn").addEventListener("click", openResetModal);
+
+    document.getElementById("resetCancelBtn").addEventListener("click", () => {
+      closeResetModal();
+      showToast("🛡️ Cancelled! Your log and lock stay as they are.");
+    });
+
+    document.getElementById("resetConfirmBtn").addEventListener("click", () => {
+      closeResetModal();
+      executeResetLastLog();
+      showToast("Log reset. You can log your dose again.");
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        const modal = document.getElementById("resetModal");
+        if (!modal.classList.contains("pointer-events-none")) {
+          closeResetModal();
+          showToast("🛡️ Cancelled! Your log and lock stay as they are.");
+        }
+      }
+    });
+
     document.getElementById("dismissHeadsUpBtn").addEventListener("click", () => {
       document.getElementById("headsUpAlertBanner").classList.add("hidden");
     });
@@ -1510,6 +1620,7 @@
             : "Verification log. Shows the date and time of your recent doses once you log one.",
           settings: "Settings drawer. Tap to open and change your medication name, pill count, doctor wait time, thirty minute alarm, rest days, font style, voice reader, and JSON backup.",
           modal: `Warning! ${document.getElementById("safetyModalText").innerText} Tap I already took it Cancel to stay safe, or tap Log second dose anyway if you meant to take another.`,
+          resetmodal: `Warning! ${document.getElementById("resetModalText").innerText} Tap Cancel to keep the lock, or tap Yes reset if you did not take your dose.`,
           field_medname: `Medication Name box. Type the name of your medicine here. Currently set to ${state.name}.`,
           field_pills: `Pills on Hand box. Type how many pills you currently have left. Currently set to ${state.pillsLeft} pills.`,
           field_lead: `Doctor Wait Time box. Type how many days it usually takes to book a doctor appointment. Currently set to ${state.leadTimeDays} days.`,
