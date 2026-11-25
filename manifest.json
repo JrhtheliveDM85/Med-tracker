@@ -1,17 +1,40 @@
 {
-  "name": "Med Tracker - Unity Forge Labs",
+  "id": "./",
+  "name": "Med Tracker - UnityForge Labs",
   "short_name": "Med Tracker",
-  "description": "Feed that dopamine gremlin",
-  "start_url": "/",
+  "description": "Personal dose log with a double-dose lock, supply runway, read-aloud, and themes. Not medical advice.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f7f5f0",
   "theme_color": "#58735f",
   "icons": [
     {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
